@@ -19,6 +19,12 @@ This project exposes inference APIs for generating embeddings using Hugging Face
    uvicorn main:app --reload
    ```
 
+3. To run it always in the localhost upon login in Mac
+  ```
+  launchctl unload ~/Library/LaunchAgents/com.sushil.genai.plist   # stop
+  launchctl load ~/Library/LaunchAgents/com.sushil.genai.plist    # start
+  ```
+
 ---
 
 ## API Endpoints
