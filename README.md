@@ -19,11 +19,30 @@ This project exposes inference APIs for generating embeddings using Hugging Face
    uvicorn main:app --reload
    ```
 
-3. To run it always in the localhost upon login in Mac
-  ```
-  launchctl unload ~/Library/LaunchAgents/com.sushil.genai.plist   # stop
-  launchctl load ~/Library/LaunchAgents/com.sushil.genai.plist    # start
-  ```
+---
+
+## Google Cloud SDK Setup (for Deployment)
+
+1. **Install Google Cloud SDK:**
+   - Download and install from: [https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install)
+   - Follow the instructions for your operating system (macOS, Windows, Linux).
+
+2. **Initialize the SDK and authenticate:**
+   ```bash
+   gcloud init
+   gcloud auth login
+   ```
+   - This will open a browser window for you to log in with your Google account.
+
+3. **Set your Google Cloud project:**
+   ```bash
+   gcloud config set project neat-mechanic-469810-h5
+   ```
+
+4. **Enable required Google Cloud APIs:**
+   ```bash
+   gcloud services enable run.googleapis.com containerregistry.googleapis.com cloudbuild.googleapis.com
+   ```
 
 ---
 

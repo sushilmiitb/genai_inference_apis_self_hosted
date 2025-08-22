@@ -17,7 +17,7 @@ ALLOWED_MODELS = [
 
 # Allowed CORS origins for production
 PROD_CORS_ORIGINS = [
-    # e.g., "https://your-frontend.com", "chrome-extension://your-extension-id"
+    "https://www.youtube.com"
 ]
 
 # Create FastAPI app instance
