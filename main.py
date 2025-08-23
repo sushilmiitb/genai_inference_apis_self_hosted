@@ -17,6 +17,7 @@ ALLOWED_MODELS = [
 
 # Allowed CORS origins for production
 PROD_CORS_ORIGINS = [
+    # e.g., "https://your-frontend.com", "chrome-extension://your-extension-id"
     "https://www.youtube.com"
 ]
 
@@ -61,6 +62,27 @@ class EmbeddingResponse(BaseModel):
     embedding_size: The size (length) of the embedding vector.
     """
     embeddings: List[float]
+    model: str
+    embedding_size: int
+
+# Batch request/response models
+class BatchEmbeddingRequest(BaseModel):
+    """
+    Request model for batch embedding endpoint.
+    texts: List of input texts for which embeddings are to be generated.
+    model_name: The Hugging Face model to use for embeddings.
+    """
+    texts: List[str]
+    model_name: str
+
+class BatchEmbeddingResponse(BaseModel):
+    """
+    Response model for batch embedding endpoint.
+    embeddings: List of embedding vectors (one per input text).
+    model: The name of the model used.
+    embedding_size: The size (length) of each embedding vector.
+    """
+    embeddings: List[List[float]]
     model: str
     embedding_size: int
 
@@ -114,4 +136,20 @@ def get_embeddings(request: EmbeddingRequest):
         embeddings=embedding,
         model=request.model_name,
         embedding_size=len(embedding)
+    )
+
+@app.post("/batch-embeddings", response_model=BatchEmbeddingResponse)
+def get_batch_embeddings(request: BatchEmbeddingRequest):
+    """
+    Endpoint to return embeddings for a batch of texts using the user-specified Hugging Face model.
+    Returns a list of embedding vectors, model name, and embedding size.
+    """
+    if not request.texts:
+        raise HTTPException(status_code=400, detail="No texts provided.")
+    embeddings = [get_text_embedding(text, request.model_name) for text in request.texts]
+    embedding_size = len(embeddings[0]) if embeddings else 0
+    return BatchEmbeddingResponse(
+        embeddings=embeddings,
+        model=request.model_name,
+        embedding_size=embedding_size
     )

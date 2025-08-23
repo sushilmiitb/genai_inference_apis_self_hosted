@@ -81,6 +81,35 @@ This project exposes inference APIs for generating embeddings using Hugging Face
     }
     ```
 
+### Batch Generate Embeddings
+- **POST /batch-embeddings**
+  - Generates embeddings for a list of texts using the specified Hugging Face model.
+  - **Request Body:**
+    ```json
+    {
+      "texts": ["First text", "Second text", "Third text"],
+      "model_name": "sentence-transformers/all-MiniLM-L6-v2"
+    }
+    ```
+  - **Response:**
+    ```json
+    {
+      "embeddings": [[...], [...], [...]],
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "embedding_size": 384
+    }
+    ```
+  - **Error Response (empty texts):**
+    ```json
+    {
+      "detail": "No texts provided."
+    }
+    ```
+  - **Notes:**
+    - The order of embeddings matches the order of input texts.
+    - All embeddings are generated using the specified model.
+    - The endpoint is efficient for batch processing and reduces network overhead.
+
 ---
 
 ## Model Caching & Performance
