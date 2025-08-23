@@ -11,7 +11,7 @@ ENV = os.getenv("APP_ENV", "development")
 
 # Allowed models for production (add more as needed)
 ALLOWED_MODELS = [
-    "sentence-transformers/all-MiniLM-L6-v2",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     # Add more allowed model names here
 ]
 
