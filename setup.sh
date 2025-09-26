@@ -3,8 +3,8 @@ set -e
 
 APP_DIR="/home/ubuntu/genai_inference_apis_self_hosted"  # Change this to your actual app path
 APP_NAME="genai_inference_apis_self_hosted"
-DOMAIN="your.domain.com"  # <-- CHANGE THIS to your actual domain
-EMAIL="your-email@example.com"  # <-- CHANGE THIS to your email
+DOMAIN="sattvium.ddns.net"  # <-- CHANGE THIS to your actual domain
+EMAIL="sushilm.iitb.dev@gmail.com"  # <-- CHANGE THIS to your email
 
 # Install Docker if not present
 if ! command -v docker &> /dev/null; then
