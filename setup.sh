@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-APP_DIR="/home/ubuntu"  # Change this to your actual app path
+APP_DIR="/home/ubuntu/genai_inference_apis_self_hosted"  # Change this to your actual app path
 APP_NAME="genai_inference_apis_self_hosted"
 
 # Install Docker if not present
