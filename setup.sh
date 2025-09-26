@@ -28,10 +28,8 @@ if ! command -v nginx &> /dev/null; then
 fi
 
 NGINX_CONF="/etc/nginx/sites-available/$APP_NAME"
-
-# Only write Nginx config if it doesn't exist
-if [ ! -f "$NGINX_CONF" ]; then
-  sudo tee $NGINX_CONF > /dev/null <<EOL
+# Write Nginx config (overwrite if exists)
+sudo tee $NGINX_CONF > /dev/null <<EOL
 server {
     listen 80;
     server_name $DOMAIN;
@@ -44,9 +42,8 @@ server {
     }
 }
 EOL
-  sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/
-  sudo nginx -t && sudo systemctl reload nginx
-fi
+sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 
 echo "Checking for SSL certificate..."
 # Install Certbot if not present
