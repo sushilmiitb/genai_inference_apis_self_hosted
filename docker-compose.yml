@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  genai_inference_apis_self_hosted:
+    build: .
+    container_name: genai_inference_apis_self_hosted
+    restart: always
+    environment:
+      - APP_ENV=production
+    expose:
+      - "8080"
+    # If you want to use a Unix socket, mount a volume and adjust Uvicorn command
+    # volumes:
+    #   - /tmp/uvicorn.sock:/tmp/uvicorn.sock

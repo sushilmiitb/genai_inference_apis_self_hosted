@@ -179,6 +179,87 @@ This project exposes inference APIs for generating embeddings using Hugging Face
    - After deployment, Cloud Run will provide a service URL.
    - Visit `https://<your-service-url>/docs` for the interactive API docs.
 
+
+## Deploying on cloud
+ssh username@your_vm_ip
+
+
 ---
 
 For more details, see the [Cloud Run Quickstart](https://cloud.google.com/run/docs/quickstarts/build-and-deploy).
+
+### Problems in the deployment in cloud run
+When a model is requested for the first time with transformer, it downloads the model and stores it in a file cache. It serves the request from the file cache subsequently.
+
+Google cloud run, when run on request based billing with zero minimum instances, deallocates the machine after a few minutes of idling (probably around 15 minutes). Such an instance is free right now. The way Dockerfile has been configured, it saves the model in the Docker image itself, so when the instance is spawn again, it only needs to load it into memory from file. Right now this is taking ~40 seconds. Also, serving the requests is taking around 6-9 seconds, after the warm up. 
+
+I am trying a pinging solution to keep the instance warm, always.
+
+---
+
+## Docker + Nginx Production Deployment
+
+### 1. Prerequisites
+- Docker and Docker Compose installed (setup.sh will install if missing)
+- Nginx installed and configured for SSL (see below)
+- Your app code cloned to the VM (e.g., /home/ubuntu/genai_inference_apis_self_hosted)
+
+### 2. Quick SSH Workflow
+
+1. **SSH into your VM**
+2. **Update code and deploy:**
+   ```bash
+   git pull
+   bash setup.sh
+   ```
+   - This will build and start the app using Docker Compose.
+   - The app will run as the container `genai_inference_apis_self_hosted` and expose port 8080 internally.
+
+3. **Nginx Configuration (on host):**
+   - Nginx should listen on ports 80/443 and proxy to `localhost:8080`.
+   - Example config:
+     ```nginx
+     server {
+         listen 443 ssl;
+         server_name your.domain.com;
+
+         ssl_certificate /etc/letsencrypt/live/your.domain.com/fullchain.pem;
+         ssl_certificate_key /etc/letsencrypt/live/your.domain.com/privkey.pem;
+
+         location / {
+             proxy_pass http://127.0.0.1:8080;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Forwarded-Proto $scheme;
+         }
+     }
+
+     server {
+         listen 80;
+         server_name your.domain.com;
+         return 301 https://$host$request_uri;
+     }
+     ```
+   - Reload Nginx after changes:
+     ```bash
+     sudo systemctl reload nginx
+     ```
+
+4. **To update the app:**
+   ```bash
+   git pull
+   bash setup.sh
+   ```
+
+---
+
+## Development vs. Production
+
+- **Development:**
+  - Run Uvicorn directly, access via `http://localhost:8080`.
+- **Production:**
+  - Use Docker Compose and Nginx as described above.
+  - Only Nginx is exposed to the public; Uvicorn runs in the container and is not public.
+
+---
