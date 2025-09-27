@@ -1,5 +1,8 @@
 # Gen AI Inference APIs Self Hosted
 
+> **⚠️ NOTE:**
+> The `setup.sh` script for automated VM + Docker + Nginx + SSL deployment is currently not working due to cloud networking and port restrictions (especially on Oracle Cloud). For a smoother experience, please use **Google Cloud Run** for deployment as described below until further notice.
+
 ## Overview
 This project exposes inference APIs for generating embeddings using Hugging Face models. It is designed for self-hosted use, allowing you to run open-source models locally and avoid third-party API costs.
 
