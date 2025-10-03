@@ -5,11 +5,22 @@ from .config import ALLOWED_PROVIDERS, ALLOWED_MODELS, DEFAULT_TEXT_CLASSIFIER_B
 
 router = APIRouter()
 
-@router.post("/classify-texts", response_model=ClassifyTextsResponse)
+@router.post(
+    "/classify-texts",
+    response_model=ClassifyTextsResponse,
+    summary="Classify texts into topics using LLM or embedding models.",
+    tags=["Text Classification"],
+)
 def classify_texts(request: ClassifyTextsRequest) -> ClassifyTextsResponse:
     """
     Classify a batch of texts into the given topics using the configured or requested backend/model.
-    Returns only topic IDs for which the classifier is confident; otherwise, the list is empty.
+
+    - **provider**: Optional. Preferred model provider (e.g., 'GEMINI', 'MOCK'). If not provided, uses config default.
+    - **model_name**: Optional. Preferred model name (e.g., 'gemini-2.5-flash'). If not provided, uses config default for the provider.
+    - If provider/model_name are invalid, returns 400 with a clear error message.
+    - If GEMINI is used and the API key is missing, returns 500 or raises ValueError.
+    - The response contains, for each text, a list of topic IDs it belongs to (empty if none).
+    - Supports batch classification in a single call.
     """
     # Determine provider
     provider = (request.provider or DEFAULT_TEXT_CLASSIFIER_BACKEND).upper()
