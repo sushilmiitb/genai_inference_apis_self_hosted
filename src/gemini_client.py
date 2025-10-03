@@ -5,6 +5,12 @@ from google.genai import types, errors
 from pydantic import BaseModel
 from .config import GEMINI_MODEL_NAME
 
+# Try to import GEMINI_API_KEY from config_secret.py
+try:
+    from config_secret import GEMINI_API_KEY as SECRET_API_KEY
+except ImportError:
+    SECRET_API_KEY = None
+
 # Pydantic models for Gemini structured output
 class GeminiClassificationResult(BaseModel):
     text_id: str
@@ -18,10 +24,13 @@ class GeminiClient:
     Client for interacting with the Gemini 2.5 Flash API for batch text classification using google-genai library.
     """
     def __init__(self, api_key: str = None, model_name: str = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        # Priority: explicit arg > config_secret.py > env var
+        self.api_key = api_key or SECRET_API_KEY or os.getenv("GEMINI_API_KEY")
         self.model_name = model_name or GEMINI_MODEL_NAME
         if not self.api_key:
-            raise ValueError("Gemini API key not set. Set GEMINI_API_KEY environment variable.")
+            raise ValueError(
+                "Gemini API key not set. Please create a file config_secret.py with GEMINI_API_KEY='<your_key>' or set the GEMINI_API_KEY environment variable."
+            )
         self.client = genai.Client(api_key=self.api_key)
 
     def classify_texts(self, texts: List[Dict[str, str]], topics: List[Dict[str, str]]) -> Dict[str, List[str]]:
@@ -36,6 +45,9 @@ class GeminiClient:
                 config={
                     "response_mime_type": "application/json",
                     "response_schema": GeminiClassificationResponse,
+                    "thinking_config": {
+                        "thinking_budget": 0  # Disables the model's "thinking" step for faster, lower-cost responses.
+                    },
                 },
             )
             # Use the parsed property for structured output

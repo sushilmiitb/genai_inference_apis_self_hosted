@@ -266,3 +266,18 @@ I am trying a pinging solution to keep the instance warm, always.
   - Only Nginx is exposed to the public; Uvicorn runs in the container and is not public.
 
 ---
+
+## Setting up Gemini API Key (Required for Gemini Backend)
+
+To use the Gemini backend, you must provide your Gemini API key in a file that is NOT committed to version control:
+
+1. Create a file at `config_secret.py` with the following content:
+
+```python
+# config_secret.py
+GEMINI_API_KEY = "your_actual_gemini_api_key_here"
+```
+
+2. Make sure `config_secret.py` is listed in `.gitignore` (it is by default).
+
+3. If you run the app or tests without this file (and without the `GEMINI_API_KEY` environment variable), you will get a clear error message instructing you to set up the file.
