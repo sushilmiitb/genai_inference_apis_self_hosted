@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModel
 import torch
+from src.classifier_api import router as classifier_router  # Import the classifier API router
 
 # Determine environment: 'development' or 'production'
 ENV = os.getenv("APP_ENV", "development")
@@ -93,7 +94,6 @@ def read_root():
     Returns a welcome message.
     """
     return {"message": "Welcome to the Gen AI Inference APIs!"}
-
 def get_tokenizer_and_model(model_name: str):
     """
     Retrieve (and cache) the tokenizer and model for the given model_name.
@@ -153,3 +153,6 @@ def get_batch_embeddings(request: BatchEmbeddingRequest):
         model=request.model_name,
         embedding_size=embedding_size
     )
+
+app.include_router(classifier_router)  # Register the /classify-texts endpoint
+
