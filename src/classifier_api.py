@@ -1,46 +1,26 @@
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
-from typing import List, Dict
-
-# Request model for a single text
-class TextItem(BaseModel):
-    id: str = Field(..., description="Unique identifier for the text")
-    text: str = Field(..., description="The text to classify")
-
-# Request model for a single topic
-class TopicItem(BaseModel):
-    id: str = Field(..., description="Unique identifier for the topic")
-    topic: str = Field(..., description="The topic/category name")
-
-# Request model for the batch classification
-class ClassifyTextsRequest(BaseModel):
-    texts: List[TextItem] = Field(..., description="List of texts to classify", min_items=1)
-    topics: List[TopicItem] = Field(..., description="List of topics to classify into", min_items=1)
-
-# Response model for a single classification result
-class ClassificationResult(BaseModel):
-    text_id: str = Field(..., description="ID of the classified text")
-    topic_ids: List[str] = Field(..., description="List of topic IDs the text belongs to (empty if none)")
-
-# Response model for the batch classification
-class ClassifyTextsResponse(BaseModel):
-    results: List[ClassificationResult] = Field(..., description="Classification results for each text")
+from fastapi import APIRouter, HTTPException
+from .classifier_models import TextItem, TopicItem, ClassifyTextsRequest, ClassificationResult, ClassifyTextsResponse
+from .classifier_backends import get_classifier_backend
+from .config import ALLOWED_PROVIDERS, ALLOWED_MODELS, DEFAULT_TEXT_CLASSIFIER_BACKEND, GEMINI_MODEL_NAME
 
 router = APIRouter()
 
 @router.post("/classify-texts", response_model=ClassifyTextsResponse)
 def classify_texts(request: ClassifyTextsRequest) -> ClassifyTextsResponse:
     """
-    Classify a batch of texts into the given topics.
+    Classify a batch of texts into the given topics using the configured or requested backend/model.
     Returns only topic IDs for which the classifier is confident; otherwise, the list is empty.
-    This is a mock implementation for testing the API contract.
     """
-    results = []
-    for text_item in request.texts:
-        # Mock logic: assign the first topic if the text contains the topic name (case-insensitive)
-        matched_topic_ids = [
-            topic.id for topic in request.topics if topic.topic.lower() in text_item.text.lower()
-        ]
-        # Only return topic IDs if there is a confident match (mock: substring match)
-        results.append(ClassificationResult(text_id=text_item.id, topic_ids=matched_topic_ids))
+    # Determine provider
+    provider = (request.provider or DEFAULT_TEXT_CLASSIFIER_BACKEND).upper()
+    if provider not in ALLOWED_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Invalid provider '{provider}'. Allowed: {ALLOWED_PROVIDERS}")
+    # Determine model_name
+    allowed_models = ALLOWED_MODELS[provider]
+    model_name = request.model_name or (GEMINI_MODEL_NAME if provider == "GEMINI" else None)
+    if model_name not in allowed_models:
+        raise HTTPException(status_code=400, detail=f"Invalid model_name '{model_name}' for provider '{provider}'. Allowed: {allowed_models}")
+    # Get backend and classify
+    backend = get_classifier_backend(provider=provider, model_name=model_name)
+    results = backend.classify(request.texts, request.topics)
     return ClassifyTextsResponse(results=results)

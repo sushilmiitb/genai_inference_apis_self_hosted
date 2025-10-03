@@ -4,3 +4,4 @@ transformers
 torch
 pytest
 httpx
+google-genai
