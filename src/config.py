@@ -15,4 +15,8 @@ ALLOWED_MODELS = {
 # Set default backend to MOCK for testing
 DEFAULT_TEXT_CLASSIFIER_BACKEND = "MOCK"
 
+# Gemini rate limits
+GEMINI_RATE_LIMIT_PER_MINUTE = 60
+GEMINI_RATE_LIMIT_PER_DAY = 1000
+
 # Add other project-wide configs here as needed
