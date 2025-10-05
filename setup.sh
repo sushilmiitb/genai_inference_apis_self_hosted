@@ -10,15 +10,17 @@ EMAIL="sushilm.iitb.dev@gmail.com"  # <-- CHANGE THIS to your email
 if ! command -v docker &> /dev/null; then
   curl -fsSL https://get.docker.com | sh
 fi
-# Install Docker Compose if not present
-if ! command -v docker-compose &> /dev/null; then
-  sudo apt-get update && sudo apt-get install -y docker-compose
+
+# Check for Docker Compose V2 (plugin)
+if ! docker compose version &> /dev/null; then
+  echo "Docker Compose V2 (plugin) not found. Please install Docker Compose V2: https://docs.docker.com/compose/install/"
+  exit 1
 fi
 
 cd "$APP_DIR"
 
-echo "Building and starting $APP_NAME with docker-compose..."
-docker-compose up -d --build
+echo "Building and starting $APP_NAME with docker compose..."
+docker compose up -d --build
 
 echo "Configuring Nginx as a reverse proxy..."
 # Install Nginx if not present
