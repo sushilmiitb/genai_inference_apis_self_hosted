@@ -86,9 +86,9 @@ if ! command -v certbot &> /dev/null; then
 fi
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-  echo "Obtaining SSL certificate with Certbot using TLS-ALPN-01 challenge (port 443)..."
+  echo "Obtaining SSL certificate with Certbot using HTTP-01 challenge (port 80)..."
   sudo systemctl stop nginx
-  sudo certbot certonly --standalone --preferred-challenges tls-alpn-01 \
+  sudo certbot certonly --standalone --preferred-challenges http-01 \
     -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
   sudo systemctl start nginx
 else
