@@ -1,4 +1,3 @@
-```bash
 #!/bin/bash
 set -e
 
@@ -87,9 +86,9 @@ if ! command -v certbot &> /dev/null; then
 fi
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-  echo "Obtaining SSL certificate with Certbot using http-01 challenge..."
+  echo "Obtaining SSL certificate with Certbot using TLS-ALPN-01 challenge (port 443)..."
   sudo systemctl stop nginx
-  sudo certbot certonly --standalone --preferred-challenges http-01 \
+  sudo certbot certonly --standalone --preferred-challenges tls-alpn-01 \
     -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
   sudo systemctl start nginx
 else
@@ -98,4 +97,3 @@ fi
 
 echo "Nginx is configured to proxy to your Docker app on port 8080 with SSL (port 443)."
 echo "Done. To update, just git pull and rerun this script."
-```
