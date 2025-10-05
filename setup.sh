@@ -1,3 +1,4 @@
+```bash
 #!/bin/bash
 set -e
 
@@ -9,12 +10,22 @@ EMAIL="sushilm.iitb.dev@gmail.com"  # <-- CHANGE THIS to your email
 # Install Docker if not present
 if ! command -v docker &> /dev/null; then
   curl -fsSL https://get.docker.com | sh
+  sudo usermod -aG docker $USER
 fi
 
-# Check for Docker Compose V2 (plugin)
+# Install Docker Compose v2 if not present
 if ! docker compose version &> /dev/null; then
-  echo "Docker Compose V2 (plugin) not found. Please install Docker Compose V2: https://docs.docker.com/compose/install/"
-  exit 1
+  echo "Installing Docker Compose v2..."
+  DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+  mkdir -p $DOCKER_CONFIG/cli-plugins
+  curl -SL https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64 \
+    -o $DOCKER_CONFIG/cli-plugins/docker-compose
+  chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+fi
+
+# Optional: backward compatibility alias for older scripts
+if ! command -v docker-compose &> /dev/null; then
+  sudo ln -s $(which docker) /usr/local/bin/docker-compose || true
 fi
 
 cd "$APP_DIR"
@@ -76,9 +87,9 @@ if ! command -v certbot &> /dev/null; then
 fi
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-  echo "Obtaining SSL certificate with Certbot using TLS-ALPN-01 challenge..."
+  echo "Obtaining SSL certificate with Certbot using http-01 challenge..."
   sudo systemctl stop nginx
-  sudo certbot certonly --standalone --preferred-challenges tls-alpn-01 \
+  sudo certbot certonly --standalone --preferred-challenges http-01 \
     -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
   sudo systemctl start nginx
 else
@@ -86,5 +97,5 @@ else
 fi
 
 echo "Nginx is configured to proxy to your Docker app on port 8080 with SSL (port 443)."
-
 echo "Done. To update, just git pull and rerun this script."
+```
