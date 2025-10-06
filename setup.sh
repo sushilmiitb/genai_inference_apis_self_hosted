@@ -1,4 +1,25 @@
 #!/bin/bash
+#
+# setup.sh - Automated setup for GenAI Inference APIs (Docker + Nginx + SSL)
+#
+# Sequence of execution:
+#   1. Check and allow required ports in iptables
+#   2. Install Docker and Docker Compose if missing
+#   3. Build and start the app with Docker Compose
+#   4. Install Nginx if missing
+#   5. Write and enable only the HTTP Nginx config
+#   6. Reload Nginx with only HTTP config
+#   7. Install Certbot if missing
+#   8. Obtain SSL certificate with Certbot
+#   9. Write and enable the HTTPS Nginx config
+#  10. Reload Nginx with both HTTP and HTTPS configs
+#  11. Enable Certbot auto-renewal
+#
+# First-time setup: Installs all dependencies, opens firewall, obtains SSL, and starts everything from scratch.
+# Updates: Pull latest code and run this script again to rebuild/restart app, update configs, and renew SSL if needed.
+#
+# For a detailed explanation, see doc/setup_sh_explained.md
+
 set -e
 
 APP_DIR="/home/ubuntu/genai_inference_apis_self_hosted"
