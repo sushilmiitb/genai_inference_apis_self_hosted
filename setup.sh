@@ -151,6 +151,16 @@ server {
 EOL
 sudo ln -sf $NGINX_SSL_CONF /etc/nginx/sites-enabled/
 
+# Step 5b: Update HTTP config to redirect all requests to HTTPS (after SSL is set up)
+sudo tee $NGINX_HTTP_CONF > /dev/null <<EOL
+server {
+    listen 8080;
+    server_name $DOMAIN;
+    return 301 https://$DOMAIN$request_uri;
+}
+EOL
+sudo ln -sf $NGINX_HTTP_CONF /etc/nginx/sites-enabled/
+
 # Step 6: Reload Nginx to apply both HTTP and HTTPS configs
 sudo nginx -t && sudo systemctl reload nginx
 
