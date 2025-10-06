@@ -74,10 +74,44 @@ if ! command -v nginx &> /dev/null; then
   sudo apt install -y nginx
 fi
 
-NGINX_CONF="/etc/nginx/sites-available/$APP_NAME"
+# Step 1: Write and enable only the HTTP config for initial Nginx start (no SSL yet)
+NGINX_HTTP_CONF="/etc/nginx/sites-available/${APP_NAME}_http"
+sudo tee $NGINX_HTTP_CONF > /dev/null <<EOL
+server {
+    listen 8080;
+    server_name $DOMAIN;
 
-# HTTPS config
-sudo tee $NGINX_CONF > /dev/null <<EOL
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOL
+sudo ln -sf $NGINX_HTTP_CONF /etc/nginx/sites-enabled/
+
+# Step 2: Start/reload Nginx with only HTTP config
+sudo nginx -t && sudo systemctl reload nginx
+
+# Step 3: Install Certbot with Nginx plugin if not present
+if ! command -v certbot &> /dev/null; then
+  sudo apt-get update
+  sudo apt-get install -y certbot python3-certbot-nginx
+fi
+
+# Step 4: Obtain SSL certificate using Certbot Nginx plugin (if not already present)
+if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+  echo "Obtaining SSL certificate using Certbot Nginx plugin..."
+  sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL --redirect
+else
+  echo "SSL certificate already exists for $DOMAIN."
+fi
+
+# Step 5: Write and enable the HTTPS config (with SSL) alongside HTTP config
+NGINX_SSL_CONF="/etc/nginx/sites-available/$APP_NAME"
+sudo tee $NGINX_SSL_CONF > /dev/null <<EOL
 server {
     listen 443 ssl;
     server_name $DOMAIN;
@@ -94,42 +128,12 @@ server {
     }
 }
 EOL
-sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/
+sudo ln -sf $NGINX_SSL_CONF /etc/nginx/sites-enabled/
 
-# HTTP config for local testing
-sudo tee /etc/nginx/sites-available/${APP_NAME}_http > /dev/null <<EOL
-server {
-    listen 8080;
-    server_name $DOMAIN;
-
-    location / {
-        proxy_pass http://127.0.0.1:8081;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-EOL
-sudo ln -sf /etc/nginx/sites-available/${APP_NAME}_http /etc/nginx/sites-enabled/
-
+# Step 6: Reload Nginx to apply both HTTP and HTTPS configs
 sudo nginx -t && sudo systemctl reload nginx
 
-echo "Checking for SSL certificate..."
-# Install Certbot with Nginx plugin if not present
-if ! command -v certbot &> /dev/null; then
-  sudo apt-get update
-  sudo apt-get install -y certbot python3-certbot-nginx
-fi
-
-if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-  echo "Obtaining SSL certificate using Certbot Nginx plugin..."
-  sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL --redirect
-else
-  echo "SSL certificate already exists for $DOMAIN."
-fi
-
-# Ensure Certbot auto-renewal timer is enabled
+# Step 7: Ensure Certbot auto-renewal timer is enabled
 sudo systemctl enable certbot.timer
 sudo systemctl start certbot.timer
 
