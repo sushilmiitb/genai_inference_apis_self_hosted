@@ -1,10 +1,46 @@
 #!/bin/bash
 set -e
 
-APP_DIR="/home/ubuntu/genai_inference_apis_self_hosted"  # Change this to your actual app path
+APP_DIR="/home/ubuntu/genai_inference_apis_self_hosted"
 APP_NAME="genai_inference_apis_self_hosted"
-DOMAIN="sattvium.ddns.net"  # <-- CHANGE THIS to your actual domain
-EMAIL="sushilm.iitb.dev@gmail.com"  # <-- CHANGE THIS to your email
+DOMAIN="sattvium.ddns.net"
+EMAIL="sushilm.iitb.dev@gmail.com"
+
+# Function to check if a port is in use by an unexpected process
+check_port_usage() {
+  local port=$1
+  local expected=$2
+  local output
+  output=$(sudo lsof -i :$port -sTCP:LISTEN -nP | grep -v COMMAND || true)
+  if [[ -n "$output" ]]; then
+    if [[ "$output" != *"$expected"* ]]; then
+      echo "[ERROR] Port $port is already in use by another process:"
+      echo "$output"
+      echo "Please stop the process using port $port and rerun this script."
+      exit 1
+    fi
+  fi
+}
+
+# Function to check and allow a port in iptables if not already allowed
+ensure_iptables_accept() {
+  local port=$1
+  if ! sudo iptables -C INPUT -p tcp --dport $port -j ACCEPT 2>/dev/null; then
+    echo "[INFO] Allowing TCP port $port in iptables..."
+    sudo iptables -I INPUT -p tcp --dport $port -j ACCEPT
+    sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+  fi
+}
+
+# Check for port usage
+check_port_usage 80 "nginx"
+check_port_usage 443 "nginx"
+check_port_usage 8080 "nginx"
+
+# Ensure iptables allows required ports
+ensure_iptables_accept 80
+ensure_iptables_accept 443
+ensure_iptables_accept 8080
 
 # Install Docker if not present
 if ! command -v docker &> /dev/null; then
@@ -28,7 +64,6 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 cd "$APP_DIR"
-
 echo "Building and starting $APP_NAME with docker compose..."
 docker compose up -d --build
 
@@ -41,7 +76,7 @@ fi
 
 NGINX_CONF="/etc/nginx/sites-available/$APP_NAME"
 
-# Write Nginx config for HTTPS (SSL) on port 443
+# HTTPS config
 sudo tee $NGINX_CONF > /dev/null <<EOL
 server {
     listen 443 ssl;
@@ -61,11 +96,12 @@ server {
 EOL
 sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/
 
-# Also write a simple HTTP config for local testing (optional)
+# HTTP config for local testing
 sudo tee /etc/nginx/sites-available/${APP_NAME}_http > /dev/null <<EOL
 server {
     listen 8080;
     server_name $DOMAIN;
+
     location / {
         proxy_pass http://127.0.0.1:8081;
         proxy_set_header Host \$host;
@@ -80,20 +116,23 @@ sudo ln -sf /etc/nginx/sites-available/${APP_NAME}_http /etc/nginx/sites-enabled
 sudo nginx -t && sudo systemctl reload nginx
 
 echo "Checking for SSL certificate..."
-# Install Certbot if not present
+# Install Certbot with Nginx plugin if not present
 if ! command -v certbot &> /dev/null; then
-  sudo apt-get update && sudo apt-get install -y certbot
+  sudo apt-get update
+  sudo apt-get install -y certbot python3-certbot-nginx
 fi
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-  echo "Obtaining SSL certificate with Certbot using HTTP-01 challenge (port 80)..."
-  sudo systemctl stop nginx
-  sudo certbot certonly --standalone --preferred-challenges http-01 \
-    -d $DOMAIN --non-interactive --agree-tos -m $EMAIL
-  sudo systemctl start nginx
+  echo "Obtaining SSL certificate using Certbot Nginx plugin..."
+  sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL --redirect
 else
   echo "SSL certificate already exists for $DOMAIN."
 fi
 
+# Ensure Certbot auto-renewal timer is enabled
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+
 echo "Nginx is configured to proxy to your Docker app on port 8080 with SSL (port 443)."
+echo "Certificate auto-renewal is enabled via Certbot."
 echo "Done. To update, just git pull and rerun this script."
