@@ -7,7 +7,7 @@ services:
     environment:
       - APP_ENV=production
     ports:
-      - "8080:8080"
+      - "8081:8080"
     # If you want to use a Unix socket, mount a volume and adjust Uvicorn command
     # volumes:
     #   - /tmp/uvicorn.sock:/tmp/uvicorn.sock
